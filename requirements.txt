@@ -1,5 +1,4 @@
 flask
 dnspython
 flask_pymongo
-hashlib
 gunicorn
