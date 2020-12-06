@@ -62,8 +62,14 @@ def add_user():
 def del_user():
     users = mongo.db.Users #collection name
     email = request.json['email']
-    users.delete_one({"email":email})
-    return jsonify({'result' : 'User deleted'})
+    q = users.find_one({"email" : email})
+    if q:
+        users.delete_one({"email":email})
+        output = 'User deleted'
+    else:
+        output = 'User not found'      
+    
+    return jsonify({'result' : output})
 
 
 if __name__ == "__main__":
