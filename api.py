@@ -1,16 +1,38 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, session, flash
 from flask_pymongo import PyMongo
 import hashlib
+from functools import wraps
+import jwt
+import datetime
+
 salt = "5gz"
 
 app = Flask(__name__)
+
 
 app.config['MONGO_DBNAME'] = 'Login' # db name
 app.config['MONGO_URI'] = 'mongodb+srv://HP:hp27299hp@cluster0.yleg7.mongodb.net/Login?retryWrites=true&w=majority'
 
 mongo = PyMongo(app)
 
-@app.route('/users', methods=['GET'])
+app.config['SECRET_KEY'] = '0#pp4RT'
+def check_token(func):
+    @wraps(func)
+    def wrapped(*args,**kwargs):
+        token = request.args.get('token')
+        if not token:
+            return jsonify({'message':'Missing token'}), 403
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'],algorithms=["HS256"])
+        except Exception as e:
+            print(e)
+            return jsonify({'message':'Invalid token'}), 403
+        return func(*args,**kwargs)
+    return wrapped
+
+
+
+@app.route('/getusers', methods=['GET'])
 def get_users():
     users = mongo.db.Users #collection name
     output = []
@@ -19,7 +41,8 @@ def get_users():
         output.append({"name":i["name"],"email":i["email"],"password":i['password']})
     return jsonify({"result":output})
 
-@app.route('/auth', methods=['POST'])
+@app.route('/login', methods=['POST'])
+
 def auth_user():
     users = mongo.db.Users #collection name
     email = request.json['email']
@@ -31,16 +54,24 @@ def auth_user():
         ps = password + salt
         h = hashlib.md5(ps.encode())
         if h.hexdigest() == q['password']:
+            session['logged_in'] = True
             output = 'User authentication success'
+            token = jwt.encode({
+            'user' : email,
+            'exp' : datetime.datetime.utcnow() + datetime.timedelta(seconds = 60)
+            },
+            app.config['SECRET_KEY'],algorithm="HS256")
+
+
         else:
             output = 'Wrong password'
 
     else:
         output = 'No user found'
 
-    return jsonify({"result":output})
+    return jsonify({"result":output,"token" : token})
 
-@app.route('/addusers', methods=['POST'])
+@app.route('/signup', methods=['POST'])
 def add_user():
 
     users = mongo.db.Users #collection name
@@ -54,22 +85,17 @@ def add_user():
     else:
         ps = password + salt
         h = hashlib.md5(ps.encode())
-        users = users.insert({'name' : name, 'email' : email,'password':h.hexdigest()})
+        users = users.insert_one({'name' : name, 'email' : email,'password':h.hexdigest()})
         output = "Successfully registerd"
     return jsonify({'result' : output})
 
-@app.route('/delusers', methods=['POST'])
+@app.route('/deluser', methods=['POST'])
+@check_token
 def del_user():
     users = mongo.db.Users #collection name
     email = request.json['email']
-    q = users.find_one({"email" : email})
-    if q:
-        users.delete_one({"email":email})
-        output = 'User deleted'
-    else:
-        output = 'User not found'      
-    
-    return jsonify({'result' : output})
+    users.delete_one({"email":email})
+    return jsonify({'result' : 'User deleted'})
 
 
 if __name__ == "__main__":
