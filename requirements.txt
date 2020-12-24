@@ -2,4 +2,4 @@ flask
 dnspython
 flask_pymongo
 gunicorn
-jwt
+PyJWT
