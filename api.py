@@ -19,7 +19,7 @@ app.config['SECRET_KEY'] = '0#pp4RT'
 def check_token(func):
     @wraps(func)
     def wrapped(*args,**kwargs):
-        token = request.args.get('token')
+        token = request.headers.get('Authorization')
         if not token:
             return jsonify({'message':'Missing token'}), 403
         try:
