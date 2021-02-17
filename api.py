@@ -61,16 +61,20 @@ def auth_user():
             'exp' : datetime.datetime.utcnow() + datetime.timedelta(seconds = 60)
             },
             app.config['SECRET_KEY'],algorithm="HS256")
+            return jsonify({"result":output,"token" : token})
 
 
         else:
             output = 'Wrong password'
+            return jsonify({"result":output)
+
 
     else:
         output = 'No user found'
+        return jsonify({"result":output)
 
-    return jsonify({"result":output,"token" : token})
 
+    
 @app.route('/signup', methods=['POST'])
 def add_user():
 
