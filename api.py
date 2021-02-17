@@ -66,12 +66,12 @@ def auth_user():
 
         else:
             output = 'Wrong password'
-            return jsonify({"result":output)
+            return jsonify({"result":output})
 
 
     else:
         output = 'No user found'
-        return jsonify({"result":output)
+        return jsonify({"result":output})
 
 
     
